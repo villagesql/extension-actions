@@ -1,0 +1,87 @@
+name: VillageSQL C++ Extension Build and Test
+description: Builds and tests a C++ VillageSQL extension
+
+inputs:
+  extension-name:
+    description: "Extension name (used for MTR suite directory and artifact naming)"
+    required: true
+  github-token:
+    description: "GitHub token for downloading artifacts from villagesql/villagesql-server"
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Environment
+      shell: bash
+      run: sudo apt-get install -y --no-install-recommends cmake g++ make libssl-dev
+
+    - name: Download dev server and SDK
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+      run: |
+        RUN_ID=$(gh run list \
+          --repo villagesql/villagesql-server \
+          --workflow extension-compat.yml \
+          --status success \
+          --limit 1 \
+          --json databaseId --jq '.[0].databaseId')
+        gh run download "$RUN_ID" \
+          --repo villagesql/villagesql-server \
+          --name devserver-linux-x86_64 \
+          --dir artifacts/
+        gh run download "$RUN_ID" \
+          --repo villagesql/villagesql-server \
+          --name sdk-linux-x86_64 \
+          --dir artifacts/
+
+    - name: Extract dev server and SDK
+      shell: bash
+      run: |
+        mkdir -p package sdk
+        tar xzf artifacts/villagesql-dev-server-*.tar.gz -C package
+        tar xzf artifacts/villagesql-extension-sdk-*.tar.gz -C sdk
+        echo "DEV_SERVER_DIR=$(echo "$PWD"/package/villagesql-dev-server-*)" >> "$GITHUB_ENV"
+        echo "SDK_DIR=$(echo "$PWD"/sdk/villagesql-extension-sdk-*)" >> "$GITHUB_ENV"
+
+    - name: Build extension VEB
+      shell: bash
+      run: |
+        NCORES=$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo "4")
+        cmake -S . -B ext-build/ \
+          -DVillageSQL_SDK_DIR="$SDK_DIR" \
+          -DCMAKE_BUILD_TYPE=Release
+        cmake --build ext-build/ --parallel "$NCORES"
+        find ext-build/ -maxdepth 1 -name "*.veb" \
+          -exec cp {} "$DEV_SERVER_DIR/lib/veb/" \;
+
+    - name: Install extension test suite
+      shell: bash
+      run: |
+        SUITE_DIR="$DEV_SERVER_DIR/mysql-test/suite/${{ inputs.extension-name }}"
+        mkdir -p "$SUITE_DIR"
+        cp -r mysql-test/. "$SUITE_DIR/"
+
+    - name: Run MTR suite
+      shell: bash
+      run: |
+        "$DEV_SERVER_DIR/villagesql" mysql-test \
+          --suite=${{ inputs.extension-name }} \
+          --parallel=auto \
+          --nounit-tests \
+          --force \
+          --retry=0
+
+    - name: Upload MTR results on failure
+      if: ${{ failure() }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: mtr-results
+        path: ${{ env.DEV_SERVER_DIR }}/mysql-test/var/log/
+
+    - name: Upload VEB artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.extension-name }}.veb
+        path: ext-build/${{ inputs.extension-name }}.veb
