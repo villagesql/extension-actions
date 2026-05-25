@@ -39,10 +39,10 @@ runs:
     - name: Extract dev server and SDK
       shell: bash
       run: |
-        mkdir -p package sdk
-        tar xzf artifacts/villagesql-dev-server-*.tar.gz -C package
+        mkdir -p villagesql sdk
+        tar xzf artifacts/villagesql-dev-server-*.tar.gz -C villagesql
         tar xzf artifacts/villagesql-extension-sdk-*.tar.gz -C sdk
-        echo "DEV_SERVER_DIR=$(echo "$PWD"/package/villagesql-dev-server-*)" >> "$GITHUB_ENV"
+        echo "DEV_SERVER_DIR=$(echo "$PWD"/villagesql/villagesql-dev-server-*)" >> "$GITHUB_ENV"
         echo "SDK_DIR=$(echo "$PWD"/sdk/villagesql-extension-sdk-*)" >> "$GITHUB_ENV"
 
     - name: Build extension VEB
