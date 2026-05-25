@@ -1,0 +1,62 @@
+name: VillageSQL Rust Extension Build and Test
+description: Runs Rust unit tests, installs cargo-vsql, and runs cargo vsql test against the VillageSQL dev server
+
+inputs:
+  extension-name:
+    description: "Extension name (used for artifact naming)"
+    required: true
+  github-token:
+    description: "GitHub token for downloading artifacts from villagesql/villagesql-server"
+    required: true
+  extension-dir:
+    description: "Relative path to extension directory"
+    required: false
+    default: "."
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Rust
+      uses: actions-rust-lang/setup-rust-toolchain@v1
+
+    - name: Run Rust tests
+      shell: bash
+      working-directory: ${{ inputs.extension-dir }}
+      run: cargo test
+
+    - name: Install cargo-vsql
+      shell: bash
+      run: cargo install cargo-vsql
+
+    - name: Download VillageSQL dev server
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+      run: |
+        RUN_ID=$(gh run list \
+          --repo villagesql/villagesql-server \
+          --workflow extension-compat.yml \
+          --status success \
+          --limit 1 \
+          --json databaseId --jq '.[0].databaseId')
+        gh run download "$RUN_ID" \
+          --repo villagesql/villagesql-server \
+          --name devserver-linux-x86_64 \
+          --dir .
+
+    - name: Extract VillageSQL dev server
+      shell: bash
+      run: |
+        tar xzf villagesql-dev-server-*.tar.gz
+        echo "VillageSQL_BUILD_DIR=$GITHUB_WORKSPACE/$(ls -d villagesql-dev-server-*/)" >> "$GITHUB_ENV"
+
+    - name: Test & Package
+      shell: bash
+      working-directory: ${{ inputs.extension-dir }}
+      run: cargo vsql test
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.extension-name }}.veb
+        path: ${{ inputs.extension-dir }}/dist/${{ inputs.extension-name }}.veb
