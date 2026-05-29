@@ -12,6 +12,10 @@ inputs:
     description: "Relative path to extension directory"
     required: false
     default: "."
+  villagesql-version:
+    description: "VillageSQL dev server version to test against. Use a release tag (e.g. '0.0.4') or 'nightly' for the latest build."
+    required: false
+    default: "nightly"
 
 runs:
   using: composite
@@ -32,17 +36,25 @@ runs:
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.github-token }}
+        VERSION: ${{ inputs.villagesql-version }}
       run: |
-        RUN_ID=$(gh run list \
-          --repo villagesql/villagesql-server \
-          --workflow extension-compat.yml \
-          --status success \
-          --limit 1 \
-          --json databaseId --jq '.[0].databaseId')
-        gh run download "$RUN_ID" \
-          --repo villagesql/villagesql-server \
-          --name devserver-linux-x86_64 \
-          --dir .
+        if [ "$VERSION" = "nightly" ]; then
+          RUN_ID=$(gh run list \
+            --repo villagesql/villagesql-server \
+            --workflow extension-compat.yml \
+            --status success \
+            --limit 1 \
+            --json databaseId --jq '.[0].databaseId')
+          gh run download "$RUN_ID" \
+            --repo villagesql/villagesql-server \
+            --name devserver-linux-x86_64 \
+            --dir .
+        else
+          gh release download "$VERSION" \
+            --repo villagesql/villagesql-server \
+            --pattern 'villagesql-dev-server-*-linux-x86_64.tar.gz' \
+            --dir .
+        fi
 
     - name: Extract VillageSQL dev server
       shell: bash

@@ -8,6 +8,10 @@ inputs:
   github-token:
     description: "GitHub token for downloading artifacts from villagesql/villagesql-server"
     required: true
+  villagesql-version:
+    description: "VillageSQL dev server / SDK version to test against. Use a release tag (e.g. '0.0.4') or 'nightly' for the latest build."
+    required: false
+    default: "nightly"
 
 runs:
   using: composite
@@ -20,21 +24,34 @@ runs:
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.github-token }}
+        VERSION: ${{ inputs.villagesql-version }}
       run: |
-        RUN_ID=$(gh run list \
-          --repo villagesql/villagesql-server \
-          --workflow extension-compat.yml \
-          --status success \
-          --limit 1 \
-          --json databaseId --jq '.[0].databaseId')
-        gh run download "$RUN_ID" \
-          --repo villagesql/villagesql-server \
-          --name devserver-linux-x86_64 \
-          --dir artifacts/
-        gh run download "$RUN_ID" \
-          --repo villagesql/villagesql-server \
-          --name sdk-linux-x86_64 \
-          --dir artifacts/
+        mkdir -p artifacts
+        if [ "$VERSION" = "nightly" ]; then
+          RUN_ID=$(gh run list \
+            --repo villagesql/villagesql-server \
+            --workflow extension-compat.yml \
+            --status success \
+            --limit 1 \
+            --json databaseId --jq '.[0].databaseId')
+          gh run download "$RUN_ID" \
+            --repo villagesql/villagesql-server \
+            --name devserver-linux-x86_64 \
+            --dir artifacts/
+          gh run download "$RUN_ID" \
+            --repo villagesql/villagesql-server \
+            --name sdk-linux-x86_64 \
+            --dir artifacts/
+        else
+          gh release download "$VERSION" \
+            --repo villagesql/villagesql-server \
+            --pattern 'villagesql-dev-server-*-linux-x86_64.tar.gz' \
+            --dir artifacts/
+          gh release download "$VERSION" \
+            --repo villagesql/villagesql-server \
+            --pattern 'villagesql-extension-sdk-*.tar.gz' \
+            --dir artifacts/
+        fi
 
     - name: Extract dev server and SDK
       shell: bash
