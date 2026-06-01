@@ -9,7 +9,9 @@ Reusable GitHub Actions composite actions for building and testing [VillageSQL](
 | [`cpp`](cpp/action.yml) | Build and test a C++ extension |
 | [`rust`](rust/action.yml) | Build and test a Rust extension |
 
-Actions download build artifacts (SDK, dev server) from the latest successful run of `extension-compat.yml` in `villagesql/villagesql-server`.
+By default, actions download build artifacts (SDK, dev server) from the latest successful run of `extension-compat.yml` in `villagesql/villagesql-server`. Pass `villagesql-version` to pin to a specific release tag instead.
+
+> **Platform:** these actions currently only support `linux-x86_64` runners (e.g. `runs-on: ubuntu-latest`). Multi-platform support is tracked as a follow-up.
 
 ## C++ extensions
 
@@ -55,10 +57,11 @@ jobs:
 
 ### Inputs
 
-| Input | Required | Description |
-|---|---|---|
-| `extension-name` | yes | Name of the extension. Used as the MTR suite name and the output artifact name (`<extension-name>.veb`). |
-| `github-token` | yes | GitHub token for downloading artifacts from `villagesql/villagesql-server`. Pass `${{ secrets.GITHUB_TOKEN }}`. |
+| Input | Required | Default | Description |
+|---|---|---|---|
+| `extension-name` | yes | — | Name of the extension. Used as the MTR suite name and the output artifact name (`<extension-name>.veb`). |
+| `github-token` | yes | — | GitHub token for downloading artifacts from `villagesql/villagesql-server`. Pass `${{ secrets.GITHUB_TOKEN }}`. |
+| `villagesql-version` | no | `nightly` | Dev server / SDK version to test against. Use a release tag (e.g. `0.0.4`) or `nightly` for the latest build of `extension-compat.yml`. |
 
 ### Artifacts
 
@@ -113,6 +116,7 @@ jobs:
 | `extension-name` | yes | — | Name of the extension. Used for the output artifact name (`<extension-name>.veb`). |
 | `extension-dir` | no | `.` | Relative path to the extension directory. |
 | `github-token` | yes | — | GitHub token for downloading artifacts from `villagesql/villagesql-server`. Pass `${{ secrets.GITHUB_TOKEN }}`. |
+| `villagesql-version` | no | `nightly` | Dev server version to test against. Use a release tag (e.g. `0.0.4`) or `nightly` for the latest build of `extension-compat.yml`. |
 
 ### Monorepo usage
 
