@@ -28,12 +28,27 @@ runs:
       run: |
         mkdir -p artifacts
         if [ "$VERSION" = "nightly" ]; then
-          RUN_ID=$(gh run list \
-            --repo villagesql/villagesql-server \
-            --workflow extension-compat.yml \
-            --status success \
-            --limit 1 \
-            --json databaseId --jq '.[0].databaseId')
+          RUN_ID=$(
+            gh run list \
+              --repo villagesql/villagesql-server \
+              --workflow extension-compat.yml \
+              --status completed \
+              --limit 20 \
+              --json databaseId \
+              --jq '.[].databaseId' | \
+            while read -r id; do
+              count=$(gh api "repos/villagesql/villagesql-server/actions/runs/${id}/artifacts" \
+                --jq '[.artifacts[] | select(.name == "devserver-linux-x86_64" or .name == "sdk-linux-x86_64")] | length')
+              if [ "$count" -ge 2 ]; then
+                echo "$id"
+                break
+              fi
+            done
+          )
+          if [ -z "$RUN_ID" ]; then
+            echo "::error::No recent extension-compat.yml run found with build artifacts"
+            exit 1
+          fi
           gh run download "$RUN_ID" \
             --repo villagesql/villagesql-server \
             --name devserver-linux-x86_64 \
