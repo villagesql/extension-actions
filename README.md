@@ -11,6 +11,8 @@ Reusable GitHub Actions composite actions for building and testing [VillageSQL](
 
 By default, actions download build artifacts (SDK, dev server) from the latest successful run of `extension-compat.yml` in `villagesql/villagesql-server`. Pass `villagesql-version` to pin to a specific release tag instead.
 
+Release tag naming changed at 0.0.6, from `0.0.5` to `release/0.0.6`. Pass the bare version either way: the actions look up `<version>` first and fall back to `release/<version>`.
+
 > **Platform:** these actions currently only support `linux-x86_64` runners (e.g. `runs-on: ubuntu-latest`). Multi-platform support is tracked as a follow-up.
 
 ## C++ extensions
@@ -62,6 +64,7 @@ jobs:
 | `extension-name` | yes | — | Name of the extension. Used as the MTR suite name and the output artifact name (`<extension-name>.veb`). |
 | `github-token` | yes | — | GitHub token for downloading artifacts from `villagesql/villagesql-server`. Pass `${{ secrets.GITHUB_TOKEN }}`. |
 | `villagesql-version` | no | `nightly` | Dev server / SDK version to test against. Use a release tag (e.g. `0.0.4`) or `nightly` for the latest build of `extension-compat.yml`. |
+| `villagesql-product` | no | `mysql-8.4` | Server product to test against when `villagesql-version` is a release. A release carries one dev server per product, so this selects which one. Values: `mysql-8.4`, `mysql-9.7`, `percona-8.4`. |
 
 ### Artifacts
 
@@ -117,6 +120,7 @@ jobs:
 | `extension-dir` | no | `.` | Relative path to the extension directory. |
 | `github-token` | yes | — | GitHub token for downloading artifacts from `villagesql/villagesql-server`. Pass `${{ secrets.GITHUB_TOKEN }}`. |
 | `villagesql-version` | no | `nightly` | Dev server version to test against. Use a release tag (e.g. `0.0.4`) or `nightly` for the latest build of `extension-compat.yml`. |
+| `villagesql-product` | no | `mysql-8.4` | Server product to test against when `villagesql-version` is a release. A release carries one dev server per product, so this selects which one. Values: `mysql-8.4`, `mysql-9.7`, `percona-8.4`. |
 
 ### Monorepo usage
 

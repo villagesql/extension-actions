@@ -12,6 +12,10 @@ inputs:
     description: "VillageSQL dev server / SDK version to test against. Use a release tag (e.g. '0.0.4') or 'nightly' for the latest build."
     required: false
     default: "nightly"
+  villagesql-product:
+    description: "Server product to test against when villagesql-version is a release (e.g. 'mysql-8.4', 'mysql-9.7', 'percona-8.4')."
+    required: false
+    default: "mysql-8.4"
 
 runs:
   using: composite
@@ -25,6 +29,7 @@ runs:
       env:
         GH_TOKEN: ${{ inputs.github-token }}
         VERSION: ${{ inputs.villagesql-version }}
+        PRODUCT: ${{ inputs.villagesql-product }}
       run: |
         mkdir -p artifacts
         if [ "$VERSION" = "nightly" ]; then
@@ -43,11 +48,15 @@ runs:
             --name sdk-linux-x86_64 \
             --dir artifacts/
         else
-          gh release download "$VERSION" \
+          TAG="$VERSION"
+          if ! gh release view "$TAG" --repo villagesql/villagesql-server >/dev/null 2>&1; then
+            TAG="release/$VERSION"
+          fi
+          gh release download "$TAG" \
             --repo villagesql/villagesql-server \
-            --pattern 'villagesql-dev-server-*-linux-x86_64.tar.gz' \
+            --pattern "villagesql-dev-server-${PRODUCT}_*-linux-x86_64.tar.gz" \
             --dir artifacts/
-          gh release download "$VERSION" \
+          gh release download "$TAG" \
             --repo villagesql/villagesql-server \
             --pattern 'villagesql-extension-sdk-*.tar.gz' \
             --dir artifacts/
@@ -57,7 +66,12 @@ runs:
       shell: bash
       run: |
         mkdir -p villagesql sdk
-        tar xzf artifacts/villagesql-dev-server-*.tar.gz -C villagesql
+        set -- artifacts/villagesql-dev-server-*.tar.gz
+        if [ "$#" -ne 1 ]; then
+          echo "Expected one dev server tarball, found $#: $*" >&2
+          exit 1
+        fi
+        tar xzf "$1" -C villagesql
         tar xzf artifacts/villagesql-extension-sdk-*.tar.gz -C sdk
         echo "DEV_SERVER_DIR=$(echo "$PWD"/villagesql/villagesql-dev-server-*)" >> "$GITHUB_ENV"
         echo "SDK_DIR=$(echo "$PWD"/sdk/villagesql-extension-sdk-*)" >> "$GITHUB_ENV"
