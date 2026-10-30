@@ -82,9 +82,16 @@ runs:
       shell: bash
       run: |
         NCORES=$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo "4")
+        # Warnings fail the build. The frozen stable headers carry a warning
+        # that no extension can fix, so -isystem makes GCC skip warnings from
+        # them. include-dev stays off the system path: it would be searched
+        # after include there, and dev-ABI extensions would get stable headers.
+        FLAGS="-Werror -isystem $SDK_DIR/include"
         cmake -S . -B ext-build/ \
           -DVillageSQL_SDK_DIR="$SDK_DIR" \
-          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_C_FLAGS="$FLAGS" \
+          -DCMAKE_CXX_FLAGS="$FLAGS"
         cmake --build ext-build/ --parallel "$NCORES"
         find ext-build/ -maxdepth 1 -name "*.veb" \
           -exec cp {} "$DEV_SERVER_DIR/lib/veb/" \;

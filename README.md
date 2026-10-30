@@ -21,6 +21,8 @@ Release tag naming changed at 0.0.6, from `0.0.5` to `release/0.0.6`. Pass the b
 
 Your extension repo must have a `CMakeLists.txt` at the root that accepts `-DVillageSQL_SDK_DIR` and produces a `.veb` file named `<extension-name>.veb` in the build directory. MTR tests go in a `mysql-test/` directory at the root.
 
+The action builds with GCC and `-Werror`, so a compiler warning fails the build. Warnings from the stable SDK headers (`include/`) are ignored. To keep warnings from vendored code out of the build, add its include directory with `SYSTEM`.
+
 ```
 my-extension/
 ├── CMakeLists.txt
