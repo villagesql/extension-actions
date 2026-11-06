@@ -39,8 +39,9 @@ runs:
             --repo villagesql/villagesql-server \
             --workflow extension-compat.yml \
             --status success \
-            --limit 1 \
-            --json databaseId --jq '.[0].databaseId')
+            --limit 20 \
+            --json databaseId,displayTitle \
+            --jq '[.[] | select(.displayTitle | contains("[nightly]"))][0].databaseId')
           gh run download "$RUN_ID" \
             --repo villagesql/villagesql-server \
             --name devserver-linux-x86_64 \
