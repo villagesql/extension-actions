@@ -9,7 +9,7 @@ Reusable GitHub Actions composite actions for building and testing [VillageSQL](
 | [`cpp`](cpp/action.yml) | Build and test a C++ extension |
 | [`rust`](rust/action.yml) | Build and test a Rust extension |
 
-By default, actions download build artifacts (SDK, dev server) from the latest successful run of `extension-compat.yml` in `villagesql/villagesql-server`. Pass `villagesql-version` to pin to a specific release tag instead.
+Actions download build artifacts (SDK, dev server) from the latest successful `[nightly]` run of `extension-compat.yml` in `villagesql/villagesql-server`. Pass `villagesql-version` to pin to a specific release tag instead.
 
 Release tag naming changed at 0.0.6, from `0.0.5` to `release/0.0.6`. Pass the bare version either way: the actions look up `<version>` first and fall back to `release/<version>`.
 
